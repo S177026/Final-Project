@@ -5,10 +5,13 @@ using UnityEngine.AI;
 
 public class Guard_AI : MonoBehaviour
 {
-    public enum Guard_State { Idle, Patrol, Suspicious, Chase, Attack };
+    public enum Guard_State { Idle, Patrol, Chase, Attack };
     NavMeshAgent guardAgent;
     public Transform playerTarget;
-    public Transform npcHead;
+    public Transform NPC;
+    Vector3 CurrentNPC;
+    public GameObject PlayerCharacter;
+    public SphereCollider collider;
 
     [Header("Patrol And Chase")]
     public List<PatrolPoint> patrol;
@@ -22,33 +25,47 @@ public class Guard_AI : MonoBehaviour
     public float patrolSpeed = 8;
     public float chaseSpeed = 15;
     private Vector3 lastPos;
+    private Ray sRay;
+    private RaycastHit hitInfo;
+    private Vector3 rayDirec;
+    float maxDistCheck = 10.0f;
+    Vector3 currentDist;
+    Vector3 direcCheck;
 
     [Space(5)]
     [Header("Line Of Sight & Hearing")]
     public bool canSee;
     public bool canHear;
-    public float sightDist = 10;
-    float viewAngle;
-    public float timeToSpot = 1f;
-    float playerVisTimer;
-    
-
+    public float FOVDist = 20;
+    public float FOVAngle = 45;
 
     [Space(5)]
     [Header("State Control")]
-    [SerializeField]public Guard_State baseStates;
+    [SerializeField]
+    public Guard_State baseStates;
     public Animator anim;
     public Light Torch;
     bool isAlive = true;
 
 
-    void Start()
+    public void Awake()
     {
-        guardAgent = this.GetComponent<NavMeshAgent>();
         anim = GetComponent<Animator>();
         currentPatrolPoint = 0;
-        SetDestination();
+        guardAgent = this.GetComponent<NavMeshAgent>();
         baseStates = Guard_AI.Guard_State.Patrol;
+
+
+    }
+    void Start()
+    {
+        SetDestination();
+    }
+
+    private void FixedUpdate()
+    {
+
+
     }
 
     // Update is called once per frame
@@ -56,46 +73,26 @@ public class Guard_AI : MonoBehaviour
     {
         PatrolRoute();
         StateChecker();
-
-        if (isTravelling)
-        {
-            baseStates = Guard_State.Patrol;
-        }
-        else if (waiting)
-        {
-            baseStates = Guard_State.Idle; 
-        }
-        else if (canSee || canHear)
-        {
-            baseStates = Guard_State.Chase;
-        }     
+        DetectPlayer();
     }
     private void StateChecker()
     {
-        if(baseStates == Guard_State.Idle)
+        if (baseStates == Guard_State.Idle)
         {
-            anim.SetBool("Walking", false);
-            anim.SetBool("Idle", true);
-            Torch.color = Color.white;         
+            Torch.color = Color.white;
         }
         else if (baseStates == Guard_State.Patrol)
         {
-            anim.SetBool("Walking", true);
-            anim.SetBool("Idle", false);
             Torch.color = Color.cyan;
             guardAgent.speed = patrolSpeed;
         }
         else if (baseStates == Guard_State.Chase)
         {
-            anim.SetBool("Running", true);
-            anim.SetBool("Walking", false);
-            anim.SetBool("Idle", false);
             Torch.color = Color.red;
-            guardAgent.speed = chaseSpeed; 
+            guardAgent.speed = chaseSpeed;
         }
         else if (baseStates == Guard_State.Attack)
         {
-            anim.SetBool("Attack", true);
             Torch.color = Color.red;
         }
     }
@@ -110,29 +107,59 @@ public class Guard_AI : MonoBehaviour
         }
         if (waiting)
         {
+            anim.SetBool("isWaiting", true);
+            anim.SetBool("isPatrolling", false);
             waitTimer += Time.deltaTime;
             if (waitTimer >= totalWaitTime)
-            {                
+            {
+                anim.SetBool("isPatrolling", true);
+                anim.SetBool("isWaiting", false);
                 waiting = false;
                 currentPatrolPoint = (currentPatrolPoint + 1) % patrol.Count;
                 SetDestination();
             }
         }
     }
+
+    // setting the next wayppoint destination 
     private void SetDestination()
     {
         Vector3 targetPoint = patrol[currentPatrolPoint].transform.position;
         guardAgent.SetDestination(targetPoint);
         isTravelling = true;
     }
-    void Chase()
-    {
 
+    //takes the players position and the npc position, check is the player is wintin 30 of the enemy or 60 angle
+    void DetectPlayer()
+    {
+        Vector3 direction = playerTarget.position - this.transform.position;
+        direction.y = 0;
+
+        float angle = Vector3.Angle(direction, NPC.forward);
+
+        if (Vector3.Distance(playerTarget.position, this.transform.position) < 40 && angle < 75)
+        {
+            canSee = true;
+        }
+        else
+        {
+            canSee = false;
+        }
+    }
+        void ChasePlayer()
+    {
+        if (canSee)
+        {
+
+
+        }
 
 
     }
-    private void OnTriggerEnter(Collider other)
-    {
-        
-    }
+
 }
+
+
+
+
+

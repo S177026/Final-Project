@@ -90,6 +90,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\FSM.cs" />
     <Compile Include="Assets\Guard_AI.cs" />
     <Compile Include="Assets\PatrolPoint.cs" />
   </ItemGroup>
