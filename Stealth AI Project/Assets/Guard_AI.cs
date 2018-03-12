@@ -8,10 +8,9 @@ public class Guard_AI : MonoBehaviour
     public enum Guard_State { Idle, Patrol, Chase, Attack };
     NavMeshAgent guardAgent;
     public Transform playerTarget;
-    public Transform NPC;
-    Vector3 CurrentNPC;
+    public Vector3 ChaseDest;
+    public Transform GuardNPC;
     public GameObject PlayerCharacter;
-    public SphereCollider collider;
 
     [Header("Patrol And Chase")]
     public List<PatrolPoint> patrol;
@@ -23,21 +22,21 @@ public class Guard_AI : MonoBehaviour
     int maxWait = 9;
     int minWait = 3;
     public float patrolSpeed = 8;
-    public float chaseSpeed = 15;
-    private Vector3 lastPos;
-    private Ray sRay;
-    private RaycastHit hitInfo;
-    private Vector3 rayDirec;
-    float maxDistCheck = 10.0f;
-    Vector3 currentDist;
-    Vector3 direcCheck;
+    public float chaseSpeed = 25;
+
 
     [Space(5)]
     [Header("Line Of Sight & Hearing")]
     public bool canSee;
     public bool canHear;
+    public bool canAttack;
+    public bool canChase;
+    [Range(0.0f, 360.0f)]
     public float FOVDist = 20;
+    [Range(0.0f, 360.0f)]
     public float FOVAngle = 45;
+    [Range(0f, 10f)]
+    public float AttackDist = 5;
 
     [Space(5)]
     [Header("State Control")]
@@ -54,18 +53,10 @@ public class Guard_AI : MonoBehaviour
         currentPatrolPoint = 0;
         guardAgent = this.GetComponent<NavMeshAgent>();
         baseStates = Guard_AI.Guard_State.Patrol;
-
-
     }
     void Start()
     {
         SetDestination();
-    }
-
-    private void FixedUpdate()
-    {
-
-
     }
 
     // Update is called once per frame
@@ -98,6 +89,15 @@ public class Guard_AI : MonoBehaviour
     }
     void PatrolRoute()
     {
+        if (canSee && canChase)
+        {
+            SetDestination();
+        }
+        else if(waiting && canSee && canChase)
+        {
+            SetDestination();
+        }
+        else
         if (isTravelling && guardAgent.remainingDistance <= 0.5f)
         {
             isTravelling = false;
@@ -105,6 +105,7 @@ public class Guard_AI : MonoBehaviour
             waitTimer = 0;
             totalWaitTime = Random.Range(minWait, maxWait);
         }
+
         if (waiting)
         {
             anim.SetBool("isWaiting", true);
@@ -124,9 +125,16 @@ public class Guard_AI : MonoBehaviour
     // setting the next wayppoint destination 
     private void SetDestination()
     {
-        Vector3 targetPoint = patrol[currentPatrolPoint].transform.position;
-        guardAgent.SetDestination(targetPoint);
-        isTravelling = true;
+        if (canSee && canChase)
+        {
+            Chase();
+        }
+        else
+        {
+            Vector3 targetPoint = patrol[currentPatrolPoint].transform.position;
+            guardAgent.SetDestination(targetPoint);
+            isTravelling = true;
+        }
     }
 
     //takes the players position and the npc position, check is the player is wintin 30 of the enemy or 60 angle
@@ -135,28 +143,49 @@ public class Guard_AI : MonoBehaviour
         Vector3 direction = playerTarget.position - this.transform.position;
         direction.y = 0;
 
-        float angle = Vector3.Angle(direction, NPC.forward);
+        float FOVAngle = Vector3.Angle(direction, GuardNPC.forward);
 
-        if (Vector3.Distance(playerTarget.position, this.transform.position) < 40 && angle < 75)
+        if (Vector3.Distance(playerTarget.position, this.transform.position) < FOVDist && FOVAngle < 75)
         {
+            canChase = true;
             canSee = true;
         }
         else
         {
             canSee = false;
+            canChase = false;
         }
-    }
-        void ChasePlayer()
-    {
-        if (canSee)
+
+        if (Vector3.Distance(playerTarget.position, this.transform.position) <= AttackDist)
         {
-
-
+            Attack();          
         }
-
-
     }
-
+    void Chase()
+    {
+        if(canChase)
+        {
+            canAttack = false;
+            anim.SetBool("isChasing", true);
+            anim.SetBool("isWaiting", false);
+            baseStates = Guard_State.Chase;
+            guardAgent.destination = playerTarget.position;
+        }
+        else if (canAttack)
+        {
+            canChase = false;
+        }
+    }
+    void Attack()
+    {
+        canAttack = true;
+        if (canAttack)
+        {
+            canChase = false;
+            anim.SetBool("closeAttack", true);
+            anim.SetBool("isChasing", false);
+        }
+    }
 }
 
 
