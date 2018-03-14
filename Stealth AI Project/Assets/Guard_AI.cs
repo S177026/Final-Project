@@ -15,9 +15,9 @@ public class Guard_AI : MonoBehaviour
     [Header("Patrol And Chase")]
     public List<PatrolPoint> patrol;
     int totalWaitTime;
-    bool isTravelling;
+    public bool isTravelling;
     int currentPatrolPoint;
-    bool waiting;
+    public bool waiting;
     float waitTimer;
     int maxWait = 9;
     int minWait = 3;
@@ -131,6 +131,7 @@ public class Guard_AI : MonoBehaviour
             waitTimer += Time.deltaTime;
             if (waitTimer >= totalWaitTime)
             {
+                baseStates = Guard_State.Patrol;
                 waiting = false;
                 currentPatrolPoint = (currentPatrolPoint + 1) % patrol.Count;
                 SetDestination();
@@ -142,7 +143,8 @@ public class Guard_AI : MonoBehaviour
     {
         if (canSee || canChase)
         {
-            Chase();
+            guardAgent.destination = playerTarget.position;
+            baseStates = Guard_State.Chase;
         }
         if(!canSee)
         {
@@ -162,19 +164,24 @@ public class Guard_AI : MonoBehaviour
 
         if (Vector3.Distance(playerTarget.position, this.transform.position) < FOVDist && FOVAngle < 75)
         {
+            isTravelling = false;
             canSee = true;
             detectCounter += Time.deltaTime;
+            canChase = true;
 
             if (detectCounter >= maxDetectCount)
             {
                 canChase = true;
+                isTravelling = false;
                 baseStates = Guard_State.Chase;
                 detectCounter = 0;
+                guardAgent.destination = playerTarget.position;
             }
             else if(Vector3.Distance(playerTarget.position, this.transform.position) < 20 && FOVAngle < 20)
             {
                 detectCounter = 0;
                 canChase = true;
+                isTravelling = false;
                 baseStates = Guard_State.Chase;
             }
             if (!canSee)
@@ -183,11 +190,13 @@ public class Guard_AI : MonoBehaviour
             }
            
         }
-        if(Vector3.Distance(playerTarget.position, this.transform.position) > MaxViewRange)
+        if(Vector3.Distance(playerTarget.position, this.transform.position) > MaxViewRange && !isTravelling && !waiting)
         {         
             canSee = false;
             canChase = false;
-            baseStates = Guard_State.Patrol;         
+            isTravelling = true;
+            baseStates = Guard_State.Patrol;
+            PatrolRoute();
         }
 
         if (Vector3.Distance(playerTarget.position, this.transform.position) <= AttackDist)
@@ -199,16 +208,7 @@ public class Guard_AI : MonoBehaviour
             anim.SetBool("closeAttack", false);
         }
     }
-    void Chase()
-    {
-        if(canChase)
-        {
-            waiting = false;
-            canAttack = false;
-            baseStates = Guard_State.Chase;
-            guardAgent.destination = playerTarget.position;
-        }      
-    }
+
     void Attack()
     {
         canAttack = true;
