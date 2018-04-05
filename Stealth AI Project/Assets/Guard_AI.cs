@@ -12,6 +12,7 @@ public class Guard_AI : MonoBehaviour
     public Transform GuardNPC;
     public GameObject PlayerCharacter;
 
+
     [Header("Patrol And Chase")]
     public List<PatrolPoint> patrol;
     int totalWaitTime;
@@ -201,22 +202,24 @@ public class Guard_AI : MonoBehaviour
 
         if (Vector3.Distance(playerTarget.position, this.transform.position) <= AttackDist)
         {
-            Attack();          
+            canAttack = true;
+            canChase = false;
+            baseStates = Guard_State.Attack;
+            anim.SetBool("closeAttack", true);
         }
         else
         {
             anim.SetBool("closeAttack", false);
+            canAttack = false;
         }
     }
-
-    void Attack()
+    public void OnTriggerEnter(Collider other)
     {
-        canAttack = true;
-        if (canAttack)
-        {
-            canChase = false;
-            baseStates = Guard_State.Attack;
-        }
+        canHear = true;
+    }
+    public void OnTriggerExit(Collider other)
+    {
+        canHear = false;
     }
 }
 
