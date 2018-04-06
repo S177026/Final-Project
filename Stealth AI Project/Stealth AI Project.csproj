@@ -90,8 +90,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\AI.cs" />
     <Compile Include="Assets\FSM.cs" />
-    <Compile Include="Assets\Guard_AI.cs" />
+    <Compile Include="Assets\Guard_AI_First_Test.cs" />
     <Compile Include="Assets\PatrolPoint.cs" />
     <Compile Include="Assets\PlayerSound.cs" />
   </ItemGroup>

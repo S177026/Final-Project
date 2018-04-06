@@ -33,16 +33,17 @@ public class Guard_AI : MonoBehaviour
     public bool canHear;
     public bool canAttack;
     public bool canChase;
-    [Range(0.0f, 360.0f)]
-    public float FOVDist = 20;
-    [Range(0.0f, 360.0f)]
-    public float FOVAngle = 45;
+
+    [Range(0f, 360f)]
+    public int FOVAngle = 45;
+    [Range(0f, 360f)]
+    public int FOVDist = 100;
     [Range(0f, 10f)]
     public float AttackDist = 5;
-    [Range(0f, 75f)]
+   [Range(0f, 75f)]
     public float MaxViewRange = 75;
-    public float currentDist;
 
+    public float currentDist;
     public float detectCounter;
     public float maxDetectCount;
 
@@ -103,6 +104,9 @@ public class Guard_AI : MonoBehaviour
             anim.SetBool("playerDetected", true);
             anim.SetBool("isPatrolling", false);
             anim.SetBool("isWaiting", false);
+            canSee = true;
+            canChase = true;
+            isTravelling = false;
         }
         else if (baseStates == Guard_State.Attack)
         {
@@ -137,6 +141,10 @@ public class Guard_AI : MonoBehaviour
                 currentPatrolPoint = (currentPatrolPoint + 1) % patrol.Count;
                 SetDestination();
             }
+            if(canSee && canChase)
+            {
+                waiting = false; 
+            }
         }
     }
     // setting the next wayppoint destination 
@@ -161,14 +169,11 @@ public class Guard_AI : MonoBehaviour
         Vector3 direction = playerTarget.position - this.transform.position;
         direction.y = 0;
 
-        float FOVAngle = Vector3.Angle(direction, GuardNPC.forward);
 
         if (Vector3.Distance(playerTarget.position, this.transform.position) < FOVDist && FOVAngle < 75)
         {
-            isTravelling = false;
-            canSee = true;
+            baseStates = Guard_State.Chase;
             detectCounter += Time.deltaTime;
-            canChase = true;
 
             if (detectCounter >= maxDetectCount)
             {
@@ -216,6 +221,8 @@ public class Guard_AI : MonoBehaviour
     public void OnTriggerEnter(Collider other)
     {
         canHear = true;
+        baseStates = Guard_State.Chase;
+        guardAgent.destination = playerTarget.position;
     }
     public void OnTriggerExit(Collider other)
     {
