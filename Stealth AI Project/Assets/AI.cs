@@ -5,20 +5,19 @@ using UnityEngine.AI;
 
 public class AI : MonoBehaviour {
 
-    public enum Guard_State { Idle, Patrol, Chase, Attack };
+    public enum Guard_State { Patrol, Suspicious, Chase, Attack };
 
     [Header("Patrol And Chase")]
     public List<PatrolPoint> patrol;
     public int totalWaitTime;
     public bool isTravelling;
-    int currentPatrolPoint;
+    public int currentPatrolPoint;
     public bool waiting;
     public float waitTimer;
     public int maxWait = 9;
     public int minWait = 3;
-    public bool isAtWaypoint;
-    public float patrolSpeed = 10;
-    public float chaseSpeed = 35;
+    public float patrolSpeed = 10f;
+    public float chaseSpeed = 25f;
 
     [Space(5)]
     [Header("Line Of Sight & Hearing")]
@@ -26,9 +25,12 @@ public class AI : MonoBehaviour {
     public int FOV = 45;
     [Range(0f, 360f)]
     public int viewDistance = 75;
+    [Range(0f, 360f)]
+    public int attackDist = 5;
     public bool ClearLineOfSight;
     public bool canHear;
     public bool canAttack;
+    public bool isSuspicious;
     public Transform GuardTransform;
     private Transform playerTransform;
     private Vector3 RayDir;
@@ -51,10 +53,6 @@ public class AI : MonoBehaviour {
 
             switch(CStates)
              {
-                /*case Guard_State.Idle:
-                    StartCoroutine(GuardIdle());
-                    break;*/
-
                 case Guard_State.Patrol:
                     StartCoroutine(GuardPatrol());
                     break;
@@ -65,6 +63,10 @@ public class AI : MonoBehaviour {
 
                 case Guard_State.Attack:
                     StartCoroutine(GuardAttack());
+                    break;
+
+                case Guard_State.Suspicious:
+                    StartCoroutine(GuardSus());
                     break;
             }
         }
@@ -133,22 +135,28 @@ public class AI : MonoBehaviour {
             GuardNav.speed = patrolSpeed;
             isTravelling = true;
             waiting = false;
-
+            isSuspicious = false;
             GuardNav.isStopped = false;
+            anim.SetBool("isWaiting", false);
+            anim.SetBool("isChasing", false);
+            anim.SetBool("isPatrolling", true);
 
             Vector3 WaypointTarget = patrol[currentPatrolPoint].transform.position;
             GuardNav.SetDestination(WaypointTarget);
 
-            if (isTravelling && GuardNav.remainingDistance <= 0.8f)
+            while (GuardNav.pathPending)
+                yield return null;
+         
+            if (isTravelling && GuardNav.remainingDistance <= 0.5f)
             {
                 isTravelling = false;
                 waiting = true;
-                //waitTimer = 0;
-                totalWaitTime = Random.Range(minWait, maxWait);             
             }
 
-            if (waiting )
+            if (waiting)
             {
+                anim.SetBool("isPatrolling", false);
+                anim.SetBool("isWaiting", true);
                 waitTimer += Time.deltaTime;
                 GuardNav.isStopped = true;
                 if (waitTimer >= totalWaitTime)
@@ -157,9 +165,14 @@ public class AI : MonoBehaviour {
                     waiting = false;
                     currentPatrolPoint = (currentPatrolPoint + 1) % patrol.Count;
                     GuardNav.SetDestination(WaypointTarget);
-                    waitTimer = 0;
                 }            
             }
+            else if (!waiting)
+            {
+                waitTimer = 0;
+                totalWaitTime = Random.Range(minWait, maxWait);
+            }
+
             if (ClearLineOfSight)
             {
                 CurrentState = Guard_State.Chase;
@@ -174,20 +187,48 @@ public class AI : MonoBehaviour {
         while (CStates == Guard_State.Chase)
         {
             GuardNav.speed = chaseSpeed;
+            canAttack = false;
             isTravelling = false;
-            
-            GuardNav.SetDestination(LastPos);
+            anim.SetBool("isWaiting", false);
+            anim.SetBool("isPatrolling", false);
+            anim.SetBool("isChasing", true);
 
-            if(GuardNav.remainingDistance <= GuardNav.stoppingDistance)
+            GuardNav.SetDestination(playerTransform.position);
+
+            if (GuardNav.remainingDistance <= GuardNav.stoppingDistance)
             {
                 GuardNav.isStopped = true;
 
                 if (!ClearLineOfSight)               
-                    CurrentState = Guard_State.Patrol;
+                    CurrentState = Guard_State.Suspicious;
                 else
                     CurrentState = Guard_State.Attack;
                 yield break;
             }          
+            yield return null;
+        }
+    }
+
+    public IEnumerator GuardSus()
+    {
+
+        while(CStates == Guard_State.Suspicious)
+        {
+            isSuspicious = true;
+            GuardNav.SetDestination(LastPos);
+            anim.SetBool("isChasing", false);
+            anim.SetBool("isWaiting", true);
+            yield return new WaitForSeconds(5);
+
+            if (!ClearLineOfSight)
+            {
+                CurrentState = Guard_State.Patrol;
+            }
+            else
+            {
+                CurrentState = Guard_State.Chase;
+                yield break;
+            }
             yield return null;
         }
     }
@@ -209,9 +250,8 @@ public class AI : MonoBehaviour {
                 canAttack = true;
                 //ATTACK!
             }
-            yield return null;
-
+            yield break;
         }
-        yield break;
+        yield return null;
     }
 }
