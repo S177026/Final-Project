@@ -37,6 +37,8 @@ public class AI : MonoBehaviour {
     public NavMeshAgent GuardNav;
     public Animator anim;
 
+    public Player playerRef;
+
     [SerializeField]
     private Guard_State CStates = Guard_State.Patrol;
 
@@ -111,13 +113,13 @@ public class AI : MonoBehaviour {
         else
             ClearLineOfSight = false;
         }
-    public void OnTriggerEnter(Collider other)
+    public void OnTriggerEnter(Collider Sound)
     {      
         canHear = true;
         CurrentState = Guard_State.Chase;
     }
 
-    public void OnTriggerExit(Collider other)
+    public void OnTriggerExit(Collider Sound)
     {
         canHear = false;       
     }
@@ -155,7 +157,7 @@ public class AI : MonoBehaviour {
 
             while (GuardNav.pathPending)
                 yield return null;
-         
+  
             if (isTravelling && GuardNav.remainingDistance <= 0.5f)
             {
                 isTravelling = false;

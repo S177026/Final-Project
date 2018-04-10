@@ -249,7 +249,7 @@
     <Compile Include="Assets\AI.cs" />
     <Compile Include="Assets\FSM.cs" />
     <Compile Include="Assets\PatrolPoint.cs" />
-    <Compile Include="Assets\PlayerSound.cs" />
+    <Compile Include="Assets\Player.cs" />
     <Compile Include="Assets\Test.cs" />
   </ItemGroup>
   <ItemGroup>
