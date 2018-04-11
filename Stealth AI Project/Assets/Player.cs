@@ -9,10 +9,7 @@ public class Player : MonoBehaviour {
     public SphereCollider colliderEmitter;
     public SoundLevel Emitter;
 
-    public BoxCollider Touch;
-
     public AI aiRef;
-    public bool isTouching;
 	
 	// Update is called once per frame
 	void Update ()

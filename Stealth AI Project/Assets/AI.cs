@@ -14,6 +14,9 @@ public class AI : MonoBehaviour {
     public int currentPatrolPoint;
     public bool waiting;
     public float waitTimer;
+    public float detectionTimer;
+    public bool beingDetected;
+    public int totalDetectionTime;
     public int maxWait = 9;
     public int minWait = 3;
     public float patrolSpeed = 10f;
@@ -25,6 +28,14 @@ public class AI : MonoBehaviour {
     public int FOV = 45;
     [Range(0f, 360f)]
     public int viewDistance = 75;
+    [Range(0f, 360f)]
+    public int shortFOV = 15;
+    [Range(0f, 360f)]
+    public int shortViewDistance = 15;
+    [Range(0f, 360f)]
+    public int longFOV = 20;
+    [Range(0f, 360f)]
+    public int longViewDistance = 60;
     public bool ClearLineOfSight;
     public bool canHear;
     public bool canAttack;
@@ -109,21 +120,53 @@ public class AI : MonoBehaviour {
                     }
                 }
             }
+            else
+                ClearLineOfSight = false;
         }
-        else
-            ClearLineOfSight = false;
+        if ((Vector3.Angle(RayDir, -transform.forward)) < shortFOV)
+        {
+            if (Physics.Raycast(transform.position, RayDir, out hitPlayer, shortViewDistance))
+            {
+                if (hitPlayer.transform.CompareTag("Player"))
+                {
+                    ClearLineOfSight = true;
+                    //print("Player Found");
+                    if (ClearLineOfSight)
+                    {
+                        LastPos = playerTransform.position;
+                    }
+                }
+            }
+            else ClearLineOfSight = false;
         }
-    public void OnTriggerEnter(Collider Sound)
-    {      
-        canHear = true;
-        CurrentState = Guard_State.Chase;
+        if((Vector3.Angle(RayDir, transform.forward)) < longFOV)
+        {
+            if(Physics.Raycast(transform.position, RayDir, out hitPlayer, longViewDistance))
+            {
+                if (hitPlayer.transform.CompareTag("Player"))
+                {
+                    beingDetected = true;
+                }
+                if (beingDetected)
+                {
+                    detectionTimer += Time.deltaTime;
+                    GuardNav.isStopped = true;
+                }
+                if (detectionTimer >= totalDetectionTime)
+                {
+                    ClearLineOfSight = true;
+                }
+                if (ClearLineOfSight)
+                {
+                    LastPos = playerTransform.position;
+                }
+                if (!beingDetected)
+                {
+                    detectionTimer = 0;
+                }
+            }
+        }
     }
-
-    public void OnTriggerExit(Collider Sound)
-    {
-        canHear = false;       
-    }
-
     private void OnDrawGizmos()
     {
         Vector3 midRay = transform.position + (transform.forward * viewDistance);
@@ -137,7 +180,43 @@ public class AI : MonoBehaviour {
         Debug.DrawLine(transform.position, midRay, Color.red);
         Debug.DrawLine(transform.position, leftRay, Color.red);
         Debug.DrawLine(transform.position, rightRay, Color.red);
+
+        Vector3 behindMidRay = transform.position + (-transform.forward * shortViewDistance);
+
+        Vector3 behindLeftRay = behindMidRay;
+        behindLeftRay.x += shortFOV * 0.5f;
+
+        Vector3 behindRightRay = behindMidRay;
+        behindRightRay.x -= shortFOV * 0.5f;
+
+        Debug.DrawLine(transform.position, behindMidRay, Color.green);
+        Debug.DrawLine(transform.position, behindLeftRay, Color.green);
+        Debug.DrawLine(transform.position, behindRightRay, Color.green);
+
+        Vector3 longdMidRay = transform.position + (transform.forward * longViewDistance);
+
+        Vector3 longLeftRay = longdMidRay;
+        longLeftRay.x += longFOV * 0.5f;
+
+        Vector3 longRightRay = longdMidRay;
+        longRightRay.x -= longFOV * 0.5f;
+
+        Debug.DrawLine(transform.position, longdMidRay, Color.blue);
+        Debug.DrawLine(transform.position, longLeftRay, Color.blue);
+        Debug.DrawLine(transform.position, longRightRay, Color.blue);
     }
+
+    public void OnTriggerEnter(Collider Sound)
+    {
+        canHear = true;
+        CurrentState = Guard_State.Chase;
+    }
+
+    public void OnTriggerExit(Collider Sound)
+    {
+        canHear = false;
+    }
+
 
     public IEnumerator GuardPatrol()
     {
@@ -199,6 +278,7 @@ public class AI : MonoBehaviour {
         {
             GuardNav.speed = chaseSpeed;
             GuardNav.isStopped = false;
+            beingDetected = false;
             waiting = false;
             canAttack = false;
             isTravelling = false;
@@ -249,8 +329,8 @@ public class AI : MonoBehaviour {
             }
             if (waiting)
             {
-                anim.SetBool("isPatrolling", false);
                 anim.SetBool("isWaiting", true);
+                anim.SetBool("isChasing", false);
                 waitTimer += Time.deltaTime;
                 GuardNav.isStopped = true;
                 if (waitTimer >= totalWaitTime)
