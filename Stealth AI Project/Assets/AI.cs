@@ -120,8 +120,6 @@ public class AI : MonoBehaviour {
                     }
                 }
             }
-            else
-                ClearLineOfSight = false;
         }
         if ((Vector3.Angle(RayDir, -transform.forward)) < shortFOV)
         {
@@ -137,11 +135,10 @@ public class AI : MonoBehaviour {
                     }
                 }
             }
-            else ClearLineOfSight = false;
         }
-        if((Vector3.Angle(RayDir, transform.forward)) < longFOV)
+        if ((Vector3.Angle(RayDir, transform.forward)) < longFOV)
         {
-            if(Physics.Raycast(transform.position, RayDir, out hitPlayer, longViewDistance))
+            if (Physics.Raycast(transform.position, RayDir, out hitPlayer, longViewDistance))
             {
                 if (hitPlayer.transform.CompareTag("Player"))
                 {
@@ -165,6 +162,12 @@ public class AI : MonoBehaviour {
                     detectionTimer = 0;
                 }
             }
+        }
+        else
+        {
+            beingDetected = false;
+            ClearLineOfSight = false;
+            detectionTimer = 0;
         }
     }
     private void OnDrawGizmos()
