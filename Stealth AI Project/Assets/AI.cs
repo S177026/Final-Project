@@ -321,6 +321,10 @@ public class AI : MonoBehaviour {
 
             while (GuardNav.pathPending)
                 yield return null;
+            if (ClearLineOfSight)
+            {
+                detectionTimer = 0;
+            }
 
             if (!ClearLineOfSight)
             {
