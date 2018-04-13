@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.AI;
 
 public class AI : MonoBehaviour {
@@ -21,6 +22,7 @@ public class AI : MonoBehaviour {
     public int minWait = 3;
     public float patrolSpeed = 10f;
     public float chaseSpeed = 25f;
+    public Light detectionLight;
 
     [Space(5)]
     [Header("Line Of Sight & Hearing")]
@@ -101,6 +103,13 @@ public class AI : MonoBehaviour {
     {
         DetectView();
 	}
+
+    void OnGUI()
+    {
+        GUIStyle stateCheck = new GUIStyle();
+        stateCheck.fontSize = 25;
+        GUI.Label(new Rect(1000, 0, Screen.width, Screen.height), "Guard State: " + CStates, stateCheck);
+    }
 
     void DetectView()
     {
@@ -225,6 +234,7 @@ public class AI : MonoBehaviour {
     {
         while (CStates == Guard_State.Patrol)
         {
+            detectionLight.color = Color.yellow;
             GuardNav.speed = patrolSpeed;
             isTravelling = true;
             waiting = false;
@@ -279,6 +289,7 @@ public class AI : MonoBehaviour {
     {
         while (CStates == Guard_State.Chase)
         {
+            detectionLight.color = Color.red;
             GuardNav.speed = chaseSpeed;
             GuardNav.isStopped = false;
             beingDetected = false;
@@ -317,6 +328,7 @@ public class AI : MonoBehaviour {
     {
         while(CStates == Guard_State.Suspicious)
         {
+            detectionLight.color = Color.blue;
             canAttack = false;
             isTravelling = true;
             isSuspicious = true;
@@ -359,6 +371,7 @@ public class AI : MonoBehaviour {
     {
         while(CStates == Guard_State.Attack)
         {
+            detectionLight.color = Color.black;
             GuardNav.SetDestination(LastPos);
 
             while (GuardNav.pathPending)
