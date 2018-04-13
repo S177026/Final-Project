@@ -21,7 +21,7 @@ public class AI : MonoBehaviour {
     public int maxWait = 9;
     public int minWait = 3;
     public float patrolSpeed = 10f;
-    public float chaseSpeed = 25f;
+    public float chaseSpeed = 30f;
     public Light detectionLight;
 
     [Space(5)]
@@ -113,6 +113,7 @@ public class AI : MonoBehaviour {
 
     void DetectView()
     {
+        // shoot out ray from the guards postion, checks if the ray has hit the player tag, if yes chase else not detected.
         RaycastHit hitPlayer;
         RayDir = playerTransform.position - transform.position;
         if ((Vector3.Angle(RayDir, transform.forward)) < FOV)
@@ -130,6 +131,7 @@ public class AI : MonoBehaviour {
                 }
             }
         }
+        //does the same as the above ray but shoots out backwards so player cant go behind and touch the guard without being detected.
         if ((Vector3.Angle(RayDir, -transform.forward)) < shortFOV)
         {
             if (Physics.Raycast(transform.position, RayDir, out hitPlayer, shortViewDistance))
@@ -143,8 +145,10 @@ public class AI : MonoBehaviour {
                         LastPos = playerTransform.position;
                     }
                 }
+
             }
         }
+        //ray that shoots out a far distance, check how long the player has been in the ray then compares that to the detection timer.
         if ((Vector3.Angle(RayDir, transform.forward)) < longFOV)
         {
             if (Physics.Raycast(transform.position, RayDir, out hitPlayer, longViewDistance))
@@ -160,6 +164,7 @@ public class AI : MonoBehaviour {
                 }
                 if (detectionTimer >= totalDetectionTime)
                 {
+                    //if timer is greater than or equal to the total timer change to chase.
                     ClearLineOfSight = true;
                 }
                 if (ClearLineOfSight)
@@ -168,6 +173,7 @@ public class AI : MonoBehaviour {
                 }
                 if (!beingDetected)
                 {
+                    // resets the detection timer to 00 if not being detected
                     detectionTimer = 0;
                 }
             }
@@ -179,8 +185,10 @@ public class AI : MonoBehaviour {
             detectionTimer = 0;
         }
     }
+
     private void OnDrawGizmos()
     {
+        //visualy drawing the viewcones in the inspector.
         Vector3 midRay = transform.position + (transform.forward * viewDistance);
 
         Vector3 leftRay = midRay;
@@ -218,6 +226,7 @@ public class AI : MonoBehaviour {
         Debug.DrawLine(transform.position, longRightRay, Color.blue);
     }
 
+    //simply ontrigger if the player is making too much noise the collider radius will increase causing ontrigger enter.
     public void OnTriggerEnter(Collider Sound)
     {
         canHear = true;
@@ -244,18 +253,20 @@ public class AI : MonoBehaviour {
             anim.SetBool("isChasing", false);
             anim.SetBool("isPatrolling", true);
 
+            //Sets target to the next waypoint in the list
             Vector3 WaypointTarget = patrol[currentPatrolPoint].transform.position;
             GuardNav.SetDestination(WaypointTarget);
 
+            //path is null is it wasn't completed yet, fixes the waypoint skip problem
             while (GuardNav.pathPending)
                 yield return null;
-  
+            //is close enought to the target waypoint start waiting
             if (isTravelling && GuardNav.remainingDistance <= 0.5f)
             {
                 isTravelling = false;
                 waiting = true;
             }
-
+            //waits at waypoint for random ammount of seconds
             if (waiting)
             {
                 anim.SetBool("isPatrolling", false);
@@ -264,6 +275,7 @@ public class AI : MonoBehaviour {
                 GuardNav.isStopped = true;
                 if (waitTimer >= totalWaitTime)
                 {
+                    //when the timer reaches the max timer take current target then add 1, sets next waypoint as destination
                     GuardNav.isStopped = false;
                     waiting = false;
                     currentPatrolPoint = (currentPatrolPoint + 1) % patrol.Count;
@@ -275,9 +287,9 @@ public class AI : MonoBehaviour {
                 waitTimer = 0;
                 totalWaitTime = Random.Range(minWait, maxWait);
             }
-
             if (ClearLineOfSight)
             {
+                //if guard see's player chnage to chase state
                 CurrentState = Guard_State.Chase;
                 yield break;
             }
@@ -289,6 +301,7 @@ public class AI : MonoBehaviour {
     {
         while (CStates == Guard_State.Chase)
         {
+
             detectionLight.color = Color.red;
             GuardNav.speed = chaseSpeed;
             GuardNav.isStopped = false;
@@ -302,19 +315,22 @@ public class AI : MonoBehaviour {
             anim.SetBool("isPatrolling", false);
             anim.SetBool("closeAttack", false);
 
+
+            //sets to dest to lastknownpos
             GuardNav.SetDestination(LastPos);
 
             while (GuardNav.pathPending)
-                yield return null;          
+                yield return null;
 
+            if (!ClearLineOfSight)
+            {
+                CurrentState = Guard_State.Suspicious;
+            }
+
+            //if the guard is close enought to attack stop the nav agent moving then switch to attack, if lost sight go to suspicious
             if (GuardNav.remainingDistance <= 10f)
             {
                 GuardNav.isStopped = true;
-                if (!ClearLineOfSight)
-                {
-                    CurrentState = Guard_State.Suspicious;
-                }
-                else
                 {
                     CurrentState = Guard_State.Attack;
                     yield break;
@@ -328,6 +344,7 @@ public class AI : MonoBehaviour {
     {
         while(CStates == Guard_State.Suspicious)
         {
+            //walks to lastkknown pos, then stops and waits for 5 seconds, if player detected during the 5 seconds back to chase else return to patrol.
             detectionLight.color = Color.blue;
             canAttack = false;
             isTravelling = true;
@@ -341,6 +358,7 @@ public class AI : MonoBehaviour {
             if (isTravelling && GuardNav.remainingDistance <= 0.5f)
             {              
                 waiting = true;
+                isTravelling = false;
             }
             if (waiting)
             {
@@ -371,6 +389,7 @@ public class AI : MonoBehaviour {
     {
         while(CStates == Guard_State.Attack)
         {
+            //whilst close enough attack the player, if still has lineofsight but too far to attack back to chase, If lineofsight lost go to suspicious.
             detectionLight.color = Color.black;
             GuardNav.SetDestination(LastPos);
 

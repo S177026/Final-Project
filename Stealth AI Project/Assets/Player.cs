@@ -14,6 +14,7 @@ public class Player : MonoBehaviour {
 	// Update is called once per frame
 	void Update ()
     {
+        //Increase size of the circle radius is wasd are pressed. C makes player crouch, left shift is noraml walking else player is running, if not moving no noise being made.
 		if(Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D))
         {
             if (Input.GetKey(KeyCode.C))
